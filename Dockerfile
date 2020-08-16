@@ -63,6 +63,7 @@ COPY supervisor/supervisord.d /etc/supervisord.d
 # Make sure files/folders needed by the processes are accessable when they run under the nobody user
 
 RUN chown -R www-data:www-data /run && \
+    chown -R www-data:www-data /var/www && \
     mkdir /usr/local/.nvm && \
     chown -R www-data:www-data /usr/local && \
     chown -R www-data:www-data /var/lib/nginx && \
