@@ -1,0 +1,76 @@
+version: '3'
+
+networks:
+  appnet:
+    internal: true
+  traefik-network:
+    external:
+      name: traefik-network
+
+services:
+  app:
+    image: docker.pkg.github.com/cbtech-ltd/base-php-app-docker/app:${APP_IMAGE_TAG}
+    restart: always
+    networks:
+      - traefik-network
+      - appnet
+    volumes:
+      - ${APP_PATH}:/app
+      - ./nginx/app.conf:/etc/nginx/sites-enabled/app.conf
+    environment:
+      - DOCKER_APP_URL=${APP_URL}
+      - DOCKER_POSTGRESQL_DATABASE=${DB_DATABASE}
+      - DOCKER_POSTGRESQL_USERNAME=${DB_USERNAME}
+      - DOCKER_POSTGRESQL_PASSWORD=${DB_PASSWORD}
+      - DOCKER_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - DOCKER_MINIO_URL=${MINIO_URL}
+      - DOCKER_MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - DOCKER_MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-server.rule=Host(`${APP_URL}`)"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-server.loadbalancer.server.port=8080"
+
+  postgresql:
+    image: bitnami/postgresql:12-debian-10
+    restart: always
+    networks:
+      - traefik-network
+      - appnet
+    volumes:
+      - ${DATA_PATH}/postgresql:/bitnami/postgresql
+    environment:
+      - POSTGRESQL_DATABASE=${DB_DATABASE}
+      - POSTGRESQL_USERNAME=${DB_USERNAME}
+      - POSTGRESQL_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "54322:5432"
+
+  redis:
+    image: bitnami/redis:5.0-debian-10
+    restart: always
+    networks:
+      - appnet
+    volumes:
+      - ${DATA_PATH}/redis:/bitnami/redis/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+
+  minio:
+    image: minio/minio
+    command: server /export
+    restart: always
+    networks:
+      - traefik-network
+      - appnet
+    volumes:
+      - ${DATA_PATH}/minio:/export
+    environment:
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-minio.rule=Host(`${MINIO_URL}`)"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-minio.loadbalancer.server.port=9000"
