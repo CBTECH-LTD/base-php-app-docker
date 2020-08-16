@@ -9,7 +9,7 @@ networks:
 
 services:
   app:
-    image: docker.pkg.github.com/cbtech-ltd/base-php-app-docker/app:${APP_IMAGE_TAG}
+    image: docker.pkg.github.com/cbtech-ltd/base-php-app-docker/php-7.4:${APP_IMAGE_TAG}
     restart: always
     networks:
       - traefik-network
